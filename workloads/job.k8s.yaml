@@ -1,0 +1,24 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/job/
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: demo-job
+  namespace: nginx
+  labels:
+    app: demo-job
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      name: demo-job-pod
+      labels:
+        app: batch-task
+    spec:
+      containers:
+        - name: batch-containers
+          image: busybox:latest
+          command: ["sh", "-c", "echo Hello from Harshit && sleep 10"]
+      restartPolicy: Never
+---
+
