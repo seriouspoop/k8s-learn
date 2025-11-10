@@ -1,0 +1,79 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache-dep
+  namespace: apache
+  labels:
+    app: apache-dep
+spec:
+  selector:
+    matchLabels:
+      app: apache-dep
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: apache-dep
+      labels:
+        app: apache-dep
+    spec:
+      # initContainers:
+      # Init containers are exactly like regular containers, except:
+      # - Init containers always run to completion.
+      # - Each init container must complete successfully before the next one starts.
+      containers:
+        - name: apache
+          image: httpd:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 200m
+              memory: 200Mi
+          ports:
+            - containerPort: 80
+              name: apache-port
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: apache-service
+  namespace: apache
+spec:
+  selector:
+    app: apache-dep
+  type: ClusterIP
+  ports:
+    - name: apache-service
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: apache-hpa
+  namespace: apache
+
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: apache-dep
+    apiVersion: apps/v1
+
+  minReplicas: 1
+  maxReplicas: 5
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 5
+---
+

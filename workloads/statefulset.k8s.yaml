@@ -1,0 +1,67 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-statefulset
+  namespace: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql-statefulset # has to match .spec.template.metadata.labels
+  serviceName: mysql-service
+  replicas: 3 # by default is 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: mysql-statefulset
+      labels:
+        app: mysql-statefulset # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-config-map
+                  key: MYSQL_DATABASE
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: mysql
+spec:
+  selector:
+    app: mysql-statefulset # should match with the template labels
+  clusterIP: None
+  ports:
+    - name: mysql-port
+      protocol: TCP
+      port: 3306
+      targetPort: 3306
+---
+

@@ -2,10 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-pvc-dep
+  name: nginx-dep
   namespace: nginx
   labels:
-    app: nginx-pvc-dep
+    app: nginx-dep
 spec:
   replicas: 2
   selector:
@@ -25,7 +25,7 @@ spec:
         - name: nginx-pod
           image: nginx:latest
           imagePullPolicy: IfNotPresent
-          resources:
+          resources: # these are resource quotas
             requests:
               cpu: 100m
               memory: 100Mi
@@ -35,13 +35,19 @@ spec:
           ports:
             - containerPort: 80
               name: nginx-http
-          volumeMounts:
-            - mountPath: /usr/share/nginx/html
-              name: nginx-volume
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
       restartPolicy: Always
-      volumes:
-        - name: nginx-volume
-          persistentVolumeClaim:
-            claimName: local-pvc
+      tolerations:
+        - key: "prod"
+          operator: "Equal"
+          value: "false"
+          effect: "NoSchedule"
 ---
 

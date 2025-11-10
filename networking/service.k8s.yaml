@@ -6,7 +6,7 @@ metadata:
   namespace: nginx
 spec:
   selector:
-    app: nginx
+    app: nginx # should match template label for finding pods
   type: ClusterIP
   ports:
     - name: nginx-service
