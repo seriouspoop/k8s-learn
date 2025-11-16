@@ -1,0 +1,32 @@
+# https://kubernetes.io/docs/concepts/workloads/pods/
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "sidecar-container"
+  namespace: initc
+spec:
+  containers:
+    # produce logs
+    - name: main-container
+      image: busybox:latest
+      command:
+        [
+          "sh",
+          "-c",
+          "while true; do echo 'Hello Dosto' >> /var/log/app.log; sleep 5; done",
+        ]
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/
+    # display logs
+    - name: sidecar-container
+      image: busybox:latest
+      command: ["sh", "-c", "tail -f /var/log/app.log"]
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/
+  volumes:
+    - name: shared-logs
+      emptyDir: {}
+---
+

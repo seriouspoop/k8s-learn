@@ -1,0 +1,97 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache-dep
+  namespace: apache
+  labels:
+    app: apache-dep
+spec:
+  selector:
+    matchLabels:
+      app: apache-dep
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: apache-dep
+      labels:
+        app: apache-dep
+    spec:
+      # initContainers:
+      # Init containers are exactly like regular containers, except:
+      # - Init containers always run to completion.
+      # - Each init container must complete successfully before the next one starts.
+      containers:
+        - name: apache
+          image: httpd:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 200m
+              memory: 200Mi
+          ports:
+            - containerPort: 80
+              name: apache-port
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: apache-service
+  namespace: apache
+spec:
+  selector:
+    app: apache-dep
+  type: ClusterIP
+  ports:
+    - name: apache-service
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+kind: VerticalPodAutoscaler
+apiVersion: autoscaling.k8s.io/v1
+metadata:
+  name: apache-vpa
+  namespace: apache
+spec:
+  targetRef:
+    name: apache-dep
+    kind: Deployment
+    apiVersion: apps/v1
+  updatePolicy:
+    updateMode: "Auto"
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: apache-manager
+  namespace: apache
+rules:
+  - apiGroups: ["", "apps", "rbac.authorization.k8s.io/v1", "batch"]
+    resources: ["deployments", "pods", "services"]
+    verbs: ["get", "apply", "delete", "watch", "create", "patch"]
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: apache-user
+  namespace: apache
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: apache-manager-rolebinding
+  namespace: apache
+subjects:
+  - kind: ServiceAccount
+    name: apache-user
+    namespace: apache
+roleRef:
+  kind: Role
+  name: apache-manager
+  apiGroup: rbac.authorization.k8s.io

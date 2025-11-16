@@ -1,0 +1,22 @@
+# https://kubernetes.io/docs/concepts/workloads/pods/
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-test
+  namespace: initc
+spec:
+  initContainers:
+    - name: init-container
+      image: busybox:latest
+      command:
+        [
+          "sh",
+          "-c",
+          "echo 'Initialization started...'; sleep 10; echo 'Initialization done.'",
+        ]
+  containers:
+    - name: main-container
+      image: busybox:latest
+      command: ["sh", "-c", "echo 'Main Container started'"]
+---
+
